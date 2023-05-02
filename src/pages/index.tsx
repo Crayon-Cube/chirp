@@ -8,6 +8,7 @@ import type { RouterOutputs } from "~/utils/api";
 import relativetime from "dayjs/plugin/relativeTime";
 import dayjs from "dayjs";
 import Image from "next/image";
+// import { LoadingPage } from "~/components/loading";
 
 dayjs.extend(relativetime);
 
@@ -17,10 +18,13 @@ const CreatePostWizard = () => {
   console.log(user);
   return (
     <div className="flex gap-3">
-      <img
+      <Image
         src={user.profileImageUrl}
         alt="Profile-Image"
         className="h-12 w-12 rounded-full"
+        
+        width={56}
+        height={56}
       />
       <input
         placeholder="Type some emojis!"
@@ -44,31 +48,46 @@ const PostView = (props: PostWithUser) => {
         height={56}
         // placeholder="blur"
       />
-      <div className="flex flex-col">
+      <div className="flex flex-col"> 
         <div className="flex gap-1 text-slate-300">
           <span>{`@${author.username}`}</span>
           <span className="font-thin ">{`~ ${dayjs(
             post.createdAt
           ).fromNow()}`}</span>
         </div>
-        <span>{post.content}</span>
+        <span className="text-xl">{post.content}</span>
       </div>
     </div>
   );
 };
 
+
+const Feed = () => {
+  const { data, isLoading: postsLoading } = api.posts.getAll.useQuery();
+
+  if(postsLoading) return <div/>
+  if(!data) return <div>Something went wrong</div>
+
+  return(
+
+  <div className="flex flex-col">
+  {[...data, ...data]?.map((fullPost) => (
+    <PostView {...fullPost} key={fullPost.post.id} />
+  ))}
+</div>
+  );
+};
+
 const Home: NextPage = () => {
   // const hello = api.example.hello.useQuery({ text: "from tRPC" });
-  const user = useUser();
-  const { data, isLoading } = api.posts.getAll.useQuery();
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
+  
+  api.posts.getAll.useQuery();
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  if (!userLoaded ) {
+    <div/>
   }
-  if (!data) return <div>Something went wrong...</div>;
-
-  console.log(data);
-
+ 
   return (
     <>
       <Head>
@@ -79,19 +98,15 @@ const Home: NextPage = () => {
       <main className="flex h-screen justify-center">
         <div className="h-full w-full border-x border-slate-400 md:max-w-2xl ">
           <div className="flex border-b border-slate-400 p-4">
-            {!user.isSignedIn && (
+            {!isSignedIn && (
               <div className="flex justify-center">
                 {" "}
                 <SignInButton />{" "}
               </div>
             )}
-            {user.isSignedIn && <CreatePostWizard />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {[...data, ...data]?.map((fullPost) => (
-              <PostView {...fullPost} key={fullPost.post.id} />
-            ))}
-          </div>
+              <Feed/>
         </div>
       </main>
     </>
